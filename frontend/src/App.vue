@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div class="appInner">
     <router-view />
   </div>
 </template>
@@ -21,7 +21,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-#app {
+.appInner {
   height: 100vh;
 }
 </style>

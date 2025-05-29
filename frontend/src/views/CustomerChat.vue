@@ -1,22 +1,24 @@
 <template>
   <div class="customer-chat">
-    <div class="chat-header">
-      <button class="back-btn" @click="$router.push('/')">
-        ← 返回
-      </button>
-      <h3>客户对话</h3>
-      <div class="status">{{ connectionStatus }}</div>
+    <div class="chat-container">
+      <div class="chat-header">
+        <button class="back-btn" @click="$router.push('/')">
+          ← 返回
+        </button>
+        <h3>客户对话</h3>
+        <div class="status">{{ connectionStatus }}</div>
+      </div>
+      
+      <ChatBox
+        :messages="messages"
+        :current-user="currentUser"
+        :typing-users="typingUsers"
+        @send-message="handleSendMessage"
+        @typing-start="handleTypingStart"
+        @typing-stop="handleTypingStop"
+        @file-upload="handleFileUpload"
+      />
     </div>
-    
-    <ChatBox
-      :messages="messages"
-      :current-user="currentUser"
-      :typing-users="typingUsers"
-      @send-message="handleSendMessage"
-      @typing-start="handleTypingStart"
-      @typing-stop="handleTypingStop"
-      @file-upload="handleFileUpload"
-    />
   </div>
 </template>
 
@@ -96,9 +98,23 @@ export default {
 <style scoped>
 .customer-chat {
   height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 1200px; /* 从 900px 增加到 1200px */
+  height: calc(100vh - 40px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -109,6 +125,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
 }
 
 .back-btn {
@@ -134,5 +151,18 @@ export default {
 .status {
   font-size: 0.9rem;
   opacity: 0.9;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .customer-chat {
+    padding: 0;
+  }
+  
+  .chat-container {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
 }
 </style>

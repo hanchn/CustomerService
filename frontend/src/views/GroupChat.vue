@@ -1,40 +1,42 @@
 <template>
   <div class="group-chat">
-    <div class="chat-header">
-      <button class="back-btn" @click="$router.push('/')">
-        ← 返回
-      </button>
-      <h3>群组对话</h3>
-      <div class="online-count">在线: {{ onlineCount }}</div>
-    </div>
-    
     <div class="chat-container">
-      <div class="sidebar">
-        <h4>在线成员 ({{ onlineMembers.length }})</h4>
-        <div class="member-list">
-          <div 
-            v-for="member in onlineMembers" 
-            :key="member.id"
-            class="member-item"
-            :class="{ active: member.id === currentUser.id }"
-          >
-            <img :src="member.avatar" :alt="member.name" class="member-avatar">
-            <span class="member-name">{{ member.name }}</span>
-            <span class="member-status" :class="member.status"></span>
-          </div>
-        </div>
+      <div class="chat-header">
+        <button class="back-btn" @click="$router.push('/')">
+          ← 返回
+        </button>
+        <h3>群组对话</h3>
+        <div class="online-count">在线: {{ onlineCount }}</div>
       </div>
       
-      <div class="chat-main">
-        <ChatBox
-          :messages="messages"
-          :current-user="currentUser"
-          :typing-users="typingUsers"
-          @send-message="handleSendMessage"
-          @typing-start="handleTypingStart"
-          @typing-stop="handleTypingStop"
-          @file-upload="handleFileUpload"
-        />
+      <div class="chat-content">
+        <div class="sidebar">
+          <h4>在线成员 ({{ onlineMembers.length }})</h4>
+          <div class="member-list">
+            <div 
+              v-for="member in onlineMembers" 
+              :key="member.id"
+              class="member-item"
+              :class="{ active: member.id === currentUser.id }"
+            >
+              <img :src="member.avatar" :alt="member.name" class="member-avatar">
+              <span class="member-name">{{ member.name }}</span>
+              <span class="member-status" :class="member.status"></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="chat-main">
+          <ChatBox
+            :messages="messages"
+            :current-user="currentUser"
+            :typing-users="typingUsers"
+            @send-message="handleSendMessage"
+            @typing-start="handleTypingStart"
+            @typing-stop="handleTypingStop"
+            @file-upload="handleFileUpload"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -152,9 +154,23 @@ export default {
 <style scoped>
 .group-chat {
   height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 1400px; /* 从 1200px 增加到 1400px */
+  height: calc(100vh - 40px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -165,6 +181,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
 }
 
 .back-btn {
@@ -192,18 +209,19 @@ export default {
   opacity: 0.9;
 }
 
-.chat-container {
+.chat-content {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
 .sidebar {
-  width: 250px;
+  width: 280px; /* 从 250px 增加到 280px */
   background: white;
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar h4 {
@@ -273,5 +291,53 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .group-chat {
+    padding: 0;
+  }
+  
+  .chat-container {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .sidebar {
+    width: 220px; /* 移动端稍微调整 */
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-content {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: 150px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .member-list {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  .member-item {
+    flex-direction: column;
+    min-width: 80px;
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  .member-avatar {
+    margin-right: 0;
+    margin-bottom: 0.25rem;
+  }
 }
 </style>

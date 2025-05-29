@@ -301,7 +301,7 @@ export default {
 }
 
 .message-bubble {
-  max-width: 70%;
+  max-width: 85%; /* 从 70% 增加到 85% */
   background: white;
   border-radius: 12px;
   padding: 0.75rem;
