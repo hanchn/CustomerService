@@ -48,37 +48,27 @@ export default {
       {
         name: 'smileys',
         icon: '😊',
-        emojis: [
-          '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-          '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-          '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-          '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣'
-        ]
+        emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳']
       },
       {
         name: 'gestures',
         icon: '👍',
-        emojis: [
-          '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙',
-          '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋',
-          '🖖', '👏', '🙌', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦿'
-        ]
+        emojis: ['👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋', '🖖', '👏', '🙌', '🤲', '🤝', '🙏']
       },
       {
         name: 'hearts',
         icon: '❤️',
-        emojis: [
-          '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-          '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'
-        ]
+        emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟']
       },
       {
-        name: 'objects',
-        icon: '🎉',
-        emojis: [
-          '🎉', '🎊', '🎈', '🎁', '🎀', '🎂', '🍰', '🧁', '🍭', '🍬',
-          '🍫', '🍩', '🍪', '☕', '🍵', '🥤', '🍺', '🍻', '🥂', '🍷'
-        ]
+        name: 'animals',
+        icon: '🐶',
+        emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇']
+      },
+      {
+        name: 'food',
+        icon: '🍎',
+        emojis: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔']
       }
     ])
     
@@ -89,7 +79,6 @@ export default {
     
     const selectEmoji = (emoji) => {
       emit('select', emoji)
-      emit('close')
     }
     
     return {
@@ -105,12 +94,12 @@ export default {
 <style scoped>
 .emoji-picker {
   position: absolute;
-  bottom: 60px;
+  bottom: 100%;
   left: 0;
-  width: 320px;
-  height: 280px;
+  width: 300px;
+  height: 250px;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -122,52 +111,52 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
   background: #f8f9fa;
   border-radius: 8px 8px 0 0;
 }
 
 .emoji-title {
+  font-size: 14px;
   font-weight: 500;
-  font-size: 0.9rem;
-  color: #495057;
+  color: #333;
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 18px;
   cursor: pointer;
-  color: #6c757d;
+  color: #666;
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .close-btn:hover {
-  color: #495057;
+  color: #333;
 }
 
 .emoji-categories {
   display: flex;
-  padding: 0.5rem;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
 }
 
 .category-btn {
   background: none;
   border: none;
-  padding: 0.5rem;
-  margin: 0 0.25rem;
+  padding: 6px 8px;
+  margin-right: 4px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1.2rem;
-  transition: background 0.2s;
+  font-size: 16px;
+  transition: background-color 0.2s;
 }
 
 .category-btn:hover {
@@ -181,7 +170,7 @@ export default {
 
 .emoji-grid {
   flex: 1;
-  padding: 0.5rem;
+  padding: 8px;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 4px;
@@ -191,11 +180,11 @@ export default {
 .emoji-btn {
   background: none;
   border: none;
-  padding: 0.5rem;
+  padding: 6px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1.2rem;
-  transition: background 0.2s;
+  font-size: 18px;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
