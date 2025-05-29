@@ -32,31 +32,32 @@ export default {
     ChatBox
   },
   setup() {
+    const currentUser = reactive({
+      id: 'customer123',
+      name: '我', // 修改为"我"
+      avatar: '/src/assets/customer-avatar.svg',
+      type: 'customer'
+    })
+    
+    // 同时更新历史消息中的发送者名称
     const messages = ref([
       {
         id: 1,
         content: '您好！有什么可以帮助您的吗？',
         sender: '客服小王',
-        avatar: '/src/assets/service-avatar.svg', // 使用默认客服头像
+        avatar: '/src/assets/service-avatar.svg',
         timestamp: new Date(Date.now() - 300000),
         type: 'received'
       },
       {
         id: 2,
         content: '我想咨询一下产品信息',
-        sender: '客户',
-        avatar: '/src/assets/customer-avatar.svg', // 使用默认客户头像
+        sender: '我', // 修改为"我"
+        avatar: '/src/assets/customer-avatar.svg',
         timestamp: new Date(Date.now() - 240000),
         type: 'sent'
       }
     ])
-    
-    const currentUser = reactive({
-      id: 'customer123',
-      name: '客户',
-      avatar: '/src/assets/customer-avatar.svg', // 使用默认客户头像
-      type: 'customer' // 添加用户类型
-    })
     
     const typingUsers = ref([])
     const connectionStatus = ref('已连接')

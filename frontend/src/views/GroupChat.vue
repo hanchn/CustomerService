@@ -19,7 +19,13 @@
               class="member-item"
               :class="{ active: member.id === currentUser.id }"
             >
-              <img :src="member.avatar" :alt="member.name" class="member-avatar">
+              <!-- 使用随机颜色头像 -->
+              <div 
+                class="member-avatar"
+                :style="{ backgroundColor: member.avatarColor }"
+              >
+                {{ member.name.charAt(0) }}
+              </div>
               <span class="member-name">{{ member.name }}</span>
               <span class="member-status" :class="member.status"></span>
             </div>
@@ -52,12 +58,48 @@ export default {
     ChatBox
   },
   setup() {
+    // 生成随机颜色的函数
+    const generateRandomColor = () => {
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
+        '#A3E4D7', '#F9E79F', '#D5A6BD', '#AED6F1', '#A9DFBF'
+      ]
+      return colors[Math.floor(Math.random() * colors.length)]
+    }
+
+    // 为用户生成头像颜色
+    const generateUserAvatar = (name, id) => {
+      // 使用用户ID作为种子，确保同一用户总是得到相同的颜色
+      let hash = 0
+      for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash)
+      }
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
+        '#A3E4D7', '#F9E79F', '#D5A6BD', '#AED6F1', '#A9DFBF'
+      ]
+      return colors[Math.abs(hash) % colors.length]
+    }
+
+    const currentUser = reactive({
+      id: 'service001',
+      name: '客服小李', // 这里是实际姓名，用于生成头像等
+      avatar: generateUserAvatar('客服小李', 'service001'),
+      avatarColor: generateUserAvatar('客服小李', 'service001'),
+      type: 'service'
+    })
+    
+    // 在消息中显示为"我"
     const messages = ref([
       {
         id: 1,
         content: '大家好，今天的工作安排已经发到群里了',
         sender: '客服主管',
-        avatar: '/manager-avatar.png',
+        avatar: generateUserAvatar('客服主管', 'manager1'),
         timestamp: new Date(Date.now() - 600000),
         type: 'received'
       },
@@ -65,50 +107,43 @@ export default {
         id: 2,
         content: '收到，我负责上午的客户咨询',
         sender: '客服小王',
-        avatar: '/avatar1.png',
+        avatar: generateUserAvatar('客服小王', 'staff1'),
         timestamp: new Date(Date.now() - 540000),
         type: 'received'
       },
       {
         id: 3,
         content: '好的，我下午值班',
-        sender: '我',
-        avatar: '/my-avatar.png',
+        sender: '我', // 已经正确设置为"我"
+        avatar: generateUserAvatar('客服小李', 'service001'),
         timestamp: new Date(Date.now() - 480000),
         type: 'sent'
       }
     ])
     
-    const currentUser = reactive({
-      id: 'service001',
-      name: '客服小李',
-      avatar: '/src/assets/service-avatar.svg', // 使用默认客服头像
-      type: 'service' // 添加用户类型
-    })
-    
     const onlineMembers = ref([
       {
         id: 'manager1',
         name: '客服主管',
-        avatar: '/manager-avatar.png',
+        avatarColor: generateUserAvatar('客服主管', 'manager1'),
         status: 'online'
       },
       {
         id: 'staff1',
         name: '客服小王',
-        avatar: '/avatar1.png',
+        avatarColor: generateUserAvatar('客服小王', 'staff1'),
         status: 'online'
       },
       {
-        id: 'staff123',
+        id: 'service001',
         name: '客服小李',
-        avatar: '/my-avatar.png',
+        avatarColor: generateUserAvatar('客服小李', 'service001'),
         status: 'online'
       },
       {
         id: 'staff2',
         name: '客服小张',
-        avatar: '/avatar2.png',
+        avatarColor: generateUserAvatar('客服小张', 'staff2'),
         status: 'away'
       }
     ])
@@ -261,7 +296,13 @@ export default {
   height: 32px;
   border-radius: 50%;
   margin-right: 0.75rem;
-  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
 }
 
 .member-name {

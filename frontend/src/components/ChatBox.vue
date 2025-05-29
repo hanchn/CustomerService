@@ -10,11 +10,51 @@
       >
         <div class="message-bubble">
           <div class="message-header">
-            <img :src="getAvatarUrl(message.avatar)" :alt="message.sender" class="avatar" @error="handleAvatarError">
+            <!-- 支持随机颜色头像 -->
+            <div 
+              v-if="typeof message.avatar === 'string' && message.avatar.startsWith('#')"
+              class="avatar color-avatar"
+              :style="{ backgroundColor: message.avatar }"
+            >
+              {{ message.sender.charAt(0) }}
+            </div>
+            <img 
+              v-else
+              :src="getAvatarUrl(message.avatar)" 
+              :alt="message.sender" 
+              class="avatar"
+              @error="handleAvatarError"
+            >
             <span class="sender-name">{{ message.sender }}</span>
             <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
           </div>
-          <div class="message-content" v-html="message.content"></div>
+          <div class="message-content">
+            <!-- 文本消息 -->
+            <div v-if="message.type === 'text'" v-html="message.content"></div>
+            <!-- 图片消息 -->
+            <div v-else-if="message.type === 'image'" class="media-message">
+              <img :src="message.url" :alt="message.fileName" class="message-image" @click="previewImage(message.url)">
+              <p class="file-name">{{ message.fileName }}</p>
+            </div>
+            <!-- 视频消息 -->
+            <div v-else-if="message.type === 'video'" class="media-message">
+              <video :src="message.url" controls class="message-video">
+                您的浏览器不支持视频播放
+              </video>
+              <p class="file-name">{{ message.fileName }}</p>
+            </div>
+            <!-- 其他文件消息 -->
+            <div v-else-if="message.type === 'file'" class="file-message">
+              <div class="file-icon">📎</div>
+              <div class="file-info">
+                <p class="file-name">{{ message.fileName }}</p>
+                <p class="file-size">{{ formatFileSize(message.fileSize) }}</p>
+              </div>
+              <button @click="downloadFile(message.url, message.fileName)" class="download-btn">下载</button>
+            </div>
+            <!-- 默认文本内容 -->
+            <div v-else v-html="message.content"></div>
+          </div>
         </div>
       </div>
       
@@ -26,6 +66,47 @@
             <span></span>
             <span></span>
             <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 文件预览区域 -->
+    <div v-if="selectedFiles.length > 0" class="file-preview-container">
+      <div class="preview-header">
+        <span>待发送文件 ({{ selectedFiles.length }})</span>
+        <button @click="clearSelectedFiles" class="clear-btn">清空</button>
+      </div>
+      <div class="file-preview-list">
+        <div v-for="(file, index) in selectedFiles" :key="index" class="file-preview-item">
+          <!-- 图片预览 -->
+          <div v-if="file.type.startsWith('image/')" class="image-preview">
+            <img :src="file.preview" :alt="file.name" class="preview-image">
+            <div class="file-info">
+              <p class="file-name">{{ file.name }}</p>
+              <p class="file-size">{{ formatFileSize(file.size) }}</p>
+            </div>
+            <button @click="removeFile(index)" class="remove-btn">×</button>
+          </div>
+          <!-- 视频预览 -->
+          <div v-else-if="file.type.startsWith('video/')" class="video-preview">
+            <video :src="file.preview" class="preview-video" muted>
+              您的浏览器不支持视频预览
+            </video>
+            <div class="file-info">
+              <p class="file-name">{{ file.name }}</p>
+              <p class="file-size">{{ formatFileSize(file.size) }}</p>
+            </div>
+            <button @click="removeFile(index)" class="remove-btn">×</button>
+          </div>
+          <!-- 其他文件预览 -->
+          <div v-else class="file-preview">
+            <div class="file-icon">📎</div>
+            <div class="file-info">
+              <p class="file-name">{{ file.name }}</p>
+              <p class="file-size">{{ formatFileSize(file.size) }}</p>
+            </div>
+            <button @click="removeFile(index)" class="remove-btn">×</button>
           </div>
         </div>
       </div>
@@ -56,6 +137,7 @@
           @change="handleFileSelect" 
           style="display: none"
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+          multiple
         >
         <button @click="$refs.fileInput.click()" title="上传文件">
           📎
@@ -73,9 +155,17 @@
         placeholder="输入消息..."
       ></div>
       
-      <button class="send-button" @click="sendMessage" :disabled="!canSend">
+      <button class="send-button" @click="sendMessage" :disabled="!canSend && selectedFiles.length === 0">
         发送
       </button>
+    </div>
+    
+    <!-- 图片预览模态框 -->
+    <div v-if="imagePreview.show" class="image-modal" @click="closeImagePreview">
+      <div class="modal-content" @click.stop>
+        <img :src="imagePreview.url" :alt="imagePreview.alt" class="modal-image">
+        <button @click="closeImagePreview" class="modal-close">×</button>
+      </div>
     </div>
   </div>
 </template>
@@ -114,13 +204,18 @@ export default {
     const isTyping = ref(false)
     const canSend = ref(false)
     const showEmojiPicker = ref(false)
+    const selectedFiles = ref([])
+    const imagePreview = reactive({
+      show: false,
+      url: '',
+      alt: ''
+    })
     
     let typingTimer = null
     
     // 获取头像URL，如果失败则使用默认头像
     const getAvatarUrl = (avatar) => {
       if (!avatar || avatar.startsWith('/')) {
-        // 根据用户类型返回默认头像
         return props.currentUser.type === 'customer' 
           ? '/src/assets/customer-avatar.svg'
           : '/src/assets/service-avatar.svg'
@@ -135,6 +230,39 @@ export default {
         : '/src/assets/service-avatar.svg'
     }
     
+    // 格式化文件大小
+    const formatFileSize = (bytes) => {
+      if (bytes === 0) return '0 Bytes'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+    
+    // 预览图片
+    const previewImage = (url) => {
+      imagePreview.show = true
+      imagePreview.url = url
+      imagePreview.alt = '图片预览'
+    }
+    
+    // 关闭图片预览
+    const closeImagePreview = () => {
+      imagePreview.show = false
+      imagePreview.url = ''
+      imagePreview.alt = ''
+    }
+    
+    // 下载文件
+    const downloadFile = (url, fileName) => {
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+    
     // 切换表情选择器
     const toggleEmojiPicker = () => {
       showEmojiPicker.value = !showEmojiPicker.value
@@ -145,11 +273,9 @@ export default {
       const selection = window.getSelection()
       const range = selection.getRangeAt(0)
       
-      // 创建表情节点
       const emojiNode = document.createTextNode(emoji)
       range.insertNode(emojiNode)
       
-      // 移动光标到表情后面
       range.setStartAfter(emojiNode)
       range.setEndAfter(emojiNode)
       selection.removeAllRanges()
@@ -165,11 +291,11 @@ export default {
       const now = new Date()
       const diff = now - date
       
-      if (diff < 60000) { // 1分钟内
+      if (diff < 60000) {
         return '刚刚'
-      } else if (diff < 3600000) { // 1小时内
+      } else if (diff < 3600000) {
         return `${Math.floor(diff / 60000)}分钟前`
-      } else if (date.toDateString() === now.toDateString()) { // 今天
+      } else if (date.toDateString() === now.toDateString()) {
         return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
       } else {
         return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -198,14 +324,13 @@ export default {
     // 处理输入
     const handleInput = () => {
       const content = messageInput.value.textContent.trim()
-      canSend.value = content.length > 0
+      canSend.value = content.length > 0 || selectedFiles.value.length > 0
       
       if (!isTyping.value && content.length > 0) {
         isTyping.value = true
         emit('typing-start')
       }
       
-      // 重置输入计时器
       clearTimeout(typingTimer)
       typingTimer = setTimeout(() => {
         if (isTyping.value) {
@@ -236,23 +361,50 @@ export default {
     }
     
     // 发送消息
-    const sendMessage = () => {
+    const sendMessage = async () => {
       const content = messageInput.value.innerHTML.trim()
-      if (!content) return
       
-      const message = {
-        id: Date.now(),
-        content: content,
-        sender: props.currentUser.name,
-        avatar: props.currentUser.avatar,
-        timestamp: new Date(),
-        type: 'sent'
+      // 如果有选中的文件，发送文件消息
+      if (selectedFiles.value.length > 0) {
+        for (const file of selectedFiles.value) {
+          const fileMessage = {
+            id: Date.now() + Math.random(),
+            sender: props.currentUser.name,
+            avatar: props.currentUser.avatar,
+            timestamp: new Date(),
+            fileName: file.name,
+            fileSize: file.size,
+            url: file.preview, // 在实际应用中，这里应该是上传后的URL
+            type: file.type.startsWith('image/') ? 'image' : 
+                  file.type.startsWith('video/') ? 'video' : 'file'
+          }
+          
+          emit('send-message', fileMessage)
+          // 这里应该调用实际的文件上传API
+          emit('file-upload', file)
+        }
+        
+        // 清空选中的文件
+        clearSelectedFiles()
       }
       
-      emit('send-message', message)
+      // 如果有文本内容，发送文本消息
+      if (content) {
+        const textMessage = {
+          id: Date.now(),
+          content: content,
+          sender: props.currentUser.name,
+          avatar: props.currentUser.avatar,
+          timestamp: new Date(),
+          type: 'text'
+        }
+        
+        emit('send-message', textMessage)
+        
+        // 清空输入框
+        messageInput.value.innerHTML = ''
+      }
       
-      // 清空输入框
-      messageInput.value.innerHTML = ''
       canSend.value = false
       
       if (isTyping.value) {
@@ -277,10 +429,40 @@ export default {
     
     // 处理文件选择
     const handleFileSelect = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        emit('file-upload', file)
-      }
+      const files = Array.from(event.target.files)
+      
+      files.forEach(file => {
+        // 创建文件预览
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          selectedFiles.value.push({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file: file,
+            preview: e.target.result
+          })
+          
+          // 更新发送按钮状态
+          canSend.value = selectedFiles.value.length > 0 || messageInput.value.textContent.trim().length > 0
+        }
+        reader.readAsDataURL(file)
+      })
+      
+      // 清空文件输入
+      event.target.value = ''
+    }
+    
+    // 移除选中的文件
+    const removeFile = (index) => {
+      selectedFiles.value.splice(index, 1)
+      canSend.value = selectedFiles.value.length > 0 || messageInput.value.textContent.trim().length > 0
+    }
+    
+    // 清空所有选中的文件
+    const clearSelectedFiles = () => {
+      selectedFiles.value = []
+      canSend.value = messageInput.value.textContent.trim().length > 0
     }
     
     // 监听消息变化，自动滚动到底部
@@ -296,10 +478,18 @@ export default {
       isItalic,
       canSend,
       showEmojiPicker,
+      selectedFiles,
+      imagePreview,
       formatTime,
+      formatFileSize,
       getTypingText,
       getAvatarUrl,
       handleAvatarError,
+      previewImage,
+      closeImagePreview,
+      downloadFile,
+      toggleEmojiPicker,
+      insertEmoji,
       handleInput,
       handleKeydown,
       handleFocus,
@@ -307,9 +497,9 @@ export default {
       sendMessage,
       toggleBold,
       toggleItalic,
-      toggleEmojiPicker,
-      insertEmoji,
-      handleFileSelect
+      handleFileSelect,
+      removeFile,
+      clearSelectedFiles
     }
   }
 }
@@ -349,12 +539,14 @@ export default {
   border-radius: 12px;
   padding: 0.75rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: #333; /* 统一文字颜色为深色 */
 }
 
-.message-wrapper.sent .message-bubble {
+/* 移除发送消息的特殊样式，保持和接收消息一致 */
+/* .message-wrapper.sent .message-bubble {
   background: #007bff;
   color: white;
-}
+} */
 
 .message-header {
   display: flex;
@@ -372,19 +564,36 @@ export default {
   object-fit: cover;
 }
 
+.color-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
 .sender-name {
   font-weight: 500;
   margin-right: 0.5rem;
+  color: #333; /* 统一发送者名称颜色 */
 }
 
 .timestamp {
   font-size: 0.7rem;
   margin-left: auto;
+  color: #666; /* 统一时间戳颜色 */
 }
 
 .message-content {
   line-height: 1.4;
   word-wrap: break-word;
+  color: #333; /* 统一消息内容颜色 */
 }
 
 .typing-indicator {
@@ -400,7 +609,7 @@ export default {
   display: flex;
   align-items: center;
   font-size: 0.9rem;
-  color: #6c757d;
+  color: #333; /* 从 #6c757d 改为 #333，确保在白色背景下清晰可见 */
 }
 
 .typing-dots {
@@ -412,7 +621,7 @@ export default {
 .typing-dots span {
   width: 4px;
   height: 4px;
-  background: #6c757d;
+  background: #333; /* 从 #6c757d 改为 #333 */
   border-radius: 50%;
   animation: typing 1.4s infinite;
 }
@@ -503,7 +712,7 @@ export default {
 
 .message-input:empty:before {
   content: attr(placeholder);
-  color: #6c757d;
+  color: #999; /* 从 #6c757d 改为 #999，placeholder稍微淡一些但仍然清晰 */
   pointer-events: none;
 }
 
@@ -544,5 +753,250 @@ export default {
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* 文件预览容器 */
+.file-preview-container {
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.clear-btn:hover {
+  background: #e3f2fd;
+}
+
+.file-preview-list {
+  padding: 8px;
+}
+
+.file-preview-item {
+  margin-bottom: 8px;
+}
+
+.image-preview,
+.video-preview,
+.file-preview {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+  position: relative;
+}
+
+.preview-image,
+.preview-video {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 12px;
+}
+
+.file-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  margin-right: 12px;
+}
+
+.file-info {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 4px 0;
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-btn:hover {
+  background: #ff3742;
+}
+
+/* 消息中的媒体内容 */
+.media-message {
+  max-width: 300px;
+}
+
+.message-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.message-image:hover {
+  transform: scale(1.02);
+}
+
+.message-video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.file-message {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+  max-width: 300px;
+}
+
+.file-message .file-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  font-size: 20px;
+}
+
+.file-message .file-info {
+  flex: 1;
+}
+
+.download-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.download-btn:hover {
+  background: #0056b3;
+}
+
+/* 图片预览模态框 */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+}
+
+.modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .file-preview-container {
+    max-height: 150px;
+  }
+  
+  .preview-image,
+  .preview-video {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .file-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .media-message {
+    max-width: 250px;
+  }
+  
+  .file-message {
+    max-width: 250px;
+  }
 }
 </style>
