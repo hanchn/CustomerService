@@ -10,7 +10,7 @@
       >
         <div class="message-bubble">
           <div class="message-header">
-            <img :src="message.avatar" :alt="message.sender" class="avatar">
+            <img :src="getAvatarUrl(message.avatar)" :alt="message.sender" class="avatar" @error="handleAvatarError">
             <span class="sender-name">{{ message.sender }}</span>
             <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
           </div>
@@ -40,9 +40,16 @@
         <button @click="toggleItalic" :class="{ active: isItalic }" title="斜体">
           <em>I</em>
         </button>
-        <button @click="insertEmoji" title="表情">
-          😊
-        </button>
+        <div class="emoji-container">
+          <button @click="toggleEmojiPicker" title="表情" class="emoji-trigger">
+            😊
+          </button>
+          <EmojiPicker 
+            :visible="showEmojiPicker" 
+            @select="insertEmoji" 
+            @close="showEmojiPicker = false"
+          />
+        </div>
         <input 
           type="file" 
           ref="fileInput" 
@@ -75,9 +82,13 @@
 
 <script>
 import { ref, reactive, nextTick, watch } from 'vue'
+import EmojiPicker from './EmojiPicker.vue'
 
 export default {
   name: 'ChatBox',
+  components: {
+    EmojiPicker
+  },
   props: {
     messages: {
       type: Array,
@@ -102,8 +113,51 @@ export default {
     const isItalic = ref(false)
     const isTyping = ref(false)
     const canSend = ref(false)
+    const showEmojiPicker = ref(false)
     
     let typingTimer = null
+    
+    // 获取头像URL，如果失败则使用默认头像
+    const getAvatarUrl = (avatar) => {
+      if (!avatar || avatar.startsWith('/')) {
+        // 根据用户类型返回默认头像
+        return props.currentUser.type === 'customer' 
+          ? '/src/assets/customer-avatar.svg'
+          : '/src/assets/service-avatar.svg'
+      }
+      return avatar
+    }
+    
+    // 头像加载失败处理
+    const handleAvatarError = (event) => {
+      event.target.src = props.currentUser.type === 'customer' 
+        ? '/src/assets/customer-avatar.svg'
+        : '/src/assets/service-avatar.svg'
+    }
+    
+    // 切换表情选择器
+    const toggleEmojiPicker = () => {
+      showEmojiPicker.value = !showEmojiPicker.value
+    }
+    
+    // 插入表情
+    const insertEmoji = (emoji) => {
+      const selection = window.getSelection()
+      const range = selection.getRangeAt(0)
+      
+      // 创建表情节点
+      const emojiNode = document.createTextNode(emoji)
+      range.insertNode(emojiNode)
+      
+      // 移动光标到表情后面
+      range.setStartAfter(emojiNode)
+      range.setEndAfter(emojiNode)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      
+      messageInput.value.focus()
+      handleInput()
+    }
     
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -221,31 +275,16 @@ export default {
       messageInput.value.focus()
     }
     
-    // 插入表情
-    const insertEmoji = () => {
-      const emojis = ['😊', '😂', '❤️', '👍', '👎', '😢', '😮', '😡', '🎉', '🤔']
-      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]
-      document.execCommand('insertText', false, randomEmoji)
-      messageInput.value.focus()
-    }
-    
     // 处理文件选择
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
       if (file) {
         emit('file-upload', file)
-        // 重置文件输入
-        fileInput.value.value = ''
       }
     }
     
-    // 监听消息变化，自动滚动
+    // 监听消息变化，自动滚动到底部
     watch(() => props.messages, () => {
-      scrollToBottom()
-    }, { deep: true })
-    
-    // 监听正在输入用户变化，自动滚动
-    watch(() => props.typingUsers, () => {
       scrollToBottom()
     }, { deep: true })
     
@@ -256,8 +295,11 @@ export default {
       isBold,
       isItalic,
       canSend,
+      showEmojiPicker,
       formatTime,
       getTypingText,
+      getAvatarUrl,
+      handleAvatarError,
       handleInput,
       handleKeydown,
       handleFocus,
@@ -265,6 +307,7 @@ export default {
       sendMessage,
       toggleBold,
       toggleItalic,
+      toggleEmojiPicker,
       insertEmoji,
       handleFileSelect
     }
@@ -301,7 +344,7 @@ export default {
 }
 
 .message-bubble {
-  max-width: 85%; /* 从 70% 增加到 85% */
+  max-width: 85%;
   background: white;
   border-radius: 12px;
   padding: 0.75rem;
@@ -395,6 +438,7 @@ export default {
   border-top: 1px solid #e9ecef;
   background: white;
   padding: 1rem;
+  position: relative;
 }
 
 .input-toolbar {
@@ -423,6 +467,20 @@ export default {
   background: #007bff;
   color: white;
   border-color: #007bff;
+}
+
+.emoji-container {
+  position: relative;
+}
+
+.emoji-trigger {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
 }
 
 .message-input {

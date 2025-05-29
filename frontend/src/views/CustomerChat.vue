@@ -37,7 +37,7 @@ export default {
         id: 1,
         content: '您好！有什么可以帮助您的吗？',
         sender: '客服小王',
-        avatar: '/avatar1.png',
+        avatar: '/src/assets/service-avatar.svg', // 使用默认客服头像
         timestamp: new Date(Date.now() - 300000),
         type: 'received'
       },
@@ -45,7 +45,7 @@ export default {
         id: 2,
         content: '我想咨询一下产品信息',
         sender: '客户',
-        avatar: '/customer-avatar.png',
+        avatar: '/src/assets/customer-avatar.svg', // 使用默认客户头像
         timestamp: new Date(Date.now() - 240000),
         type: 'sent'
       }
@@ -54,7 +54,8 @@ export default {
     const currentUser = reactive({
       id: 'customer123',
       name: '客户',
-      avatar: '/customer-avatar.png'
+      avatar: '/src/assets/customer-avatar.svg', // 使用默认客户头像
+      type: 'customer' // 添加用户类型
     })
     
     const typingUsers = ref([])

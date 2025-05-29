@@ -80,9 +80,10 @@ export default {
     ])
     
     const currentUser = reactive({
-      id: 'staff123',
+      id: 'service001',
       name: '客服小李',
-      avatar: '/my-avatar.png'
+      avatar: '/src/assets/service-avatar.svg', // 使用默认客服头像
+      type: 'service' // 添加用户类型
     })
     
     const onlineMembers = ref([
