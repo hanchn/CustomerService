@@ -308,6 +308,18 @@ export default {
 .member-name {
   flex: 1;
   font-size: 0.9rem;
+  color: #333; /* 添加深色文字 */
+  font-weight: 500; /* 增加字重提高可读性 */
+}
+
+.sidebar h4 {
+  margin: 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.9rem;
+  color: #333; /* 从 #666 改为 #333，更深的颜色 */
+  font-weight: 600; /* 增加字重 */
 }
 
 .member-status {

@@ -10,7 +10,7 @@
       >
         <div class="message-bubble">
           <div class="message-header">
-            <!-- 支持随机颜色头像 -->
+            <!-- 头像部分保持不变 -->
             <div 
               v-if="typeof message.avatar === 'string' && message.avatar.startsWith('#')"
               class="avatar color-avatar"
@@ -29,22 +29,22 @@
             <span class="timestamp">{{ formatTime(message.timestamp) }}</span>
           </div>
           <div class="message-content">
-            <!-- 文本消息 -->
-            <div v-if="message.type === 'text'" v-html="message.content"></div>
+            <!-- 使用messageType而不是type来判断消息内容类型 -->
+            <div v-if="message.messageType === 'text'" v-html="message.content"></div>
             <!-- 图片消息 -->
-            <div v-else-if="message.type === 'image'" class="media-message">
+            <div v-else-if="message.messageType === 'image'" class="media-message">
               <img :src="message.url" :alt="message.fileName" class="message-image" @click="previewImage(message.url)">
               <p class="file-name">{{ message.fileName }}</p>
             </div>
             <!-- 视频消息 -->
-            <div v-else-if="message.type === 'video'" class="media-message">
+            <div v-else-if="message.messageType === 'video'" class="media-message">
               <video :src="message.url" controls class="message-video">
                 您的浏览器不支持视频播放
               </video>
               <p class="file-name">{{ message.fileName }}</p>
             </div>
             <!-- 其他文件消息 -->
-            <div v-else-if="message.type === 'file'" class="file-message">
+            <div v-else-if="message.messageType === 'file'" class="file-message">
               <div class="file-icon">📎</div>
               <div class="file-info">
                 <p class="file-name">{{ message.fileName }}</p>
@@ -58,7 +58,7 @@
         </div>
       </div>
       
-      <!-- 正在输入提示 -->
+      <!-- 正在输入提示保持不变 -->
       <div v-if="typingUsers.length > 0" class="typing-indicator">
         <div class="typing-bubble">
           <span>{{ getTypingText() }}</span>
@@ -374,17 +374,16 @@ export default {
             timestamp: new Date(),
             fileName: file.name,
             fileSize: file.size,
-            url: file.preview, // 在实际应用中，这里应该是上传后的URL
-            type: file.type.startsWith('image/') ? 'image' : 
-                  file.type.startsWith('video/') ? 'video' : 'file'
+            url: file.preview,
+            messageType: file.type.startsWith('image/') ? 'image' : 
+                  file.type.startsWith('video/') ? 'video' : 'file', // 重命名为messageType
+            type: 'sent' // 添加发送者类型，用于CSS样式
           }
           
           emit('send-message', fileMessage)
-          // 这里应该调用实际的文件上传API
           emit('file-upload', file)
         }
         
-        // 清空选中的文件
         clearSelectedFiles()
       }
       
@@ -396,12 +395,11 @@ export default {
           sender: props.currentUser.name,
           avatar: props.currentUser.avatar,
           timestamp: new Date(),
-          type: 'text'
+          messageType: 'text', // 重命名为messageType
+          type: 'sent' // 添加发送者类型，用于CSS样式
         }
         
         emit('send-message', textMessage)
-        
-        // 清空输入框
         messageInput.value.innerHTML = ''
       }
       
@@ -703,16 +701,13 @@ export default {
   line-height: 1.4;
   outline: none;
   background: white;
-}
-
-.message-input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  color: #333; /* 添加深色输入文字 */
+  font-size: 14px; /* 确保字体大小合适 */
 }
 
 .message-input:empty:before {
   content: attr(placeholder);
-  color: #999; /* 从 #6c757d 改为 #999，placeholder稍微淡一些但仍然清晰 */
+  color: #888; /* 从 #999 改为 #888，placeholder更清晰 */
   pointer-events: none;
 }
 
